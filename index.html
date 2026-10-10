@@ -160,9 +160,9 @@
       <button id="resetBtn" class="ghost" type="button">重設</button>
     </div>
     <div class="setup">
-      <label>時長（分鐘）
-        <input id="minutes" type="number" min="1" max="180" value="15" />
-      </label>
+      <label>時 <input id="hours" type="number" min="0" max="23" value="0" /></label>
+      <label>分 <input id="minutes" type="number" min="0" max="59" value="15" /></label>
+      <label>秒 <input id="seconds" type="number" min="0" max="59" value="0" /></label>
       <label><input id="warn5" type="checkbox" checked /> 剩 5 分鐘提示</label>
       <label><input id="warn1" type="checkbox" checked /> 剩 1 分鐘提示</label>
       <label><input id="sound" type="checkbox" checked /> 結束鈴聲</label>
@@ -173,7 +173,10 @@
     const timeEl = document.getElementById("time");
     const statusEl = document.getElementById("status");
     const endedEl = document.getElementById("ended");
+    const hoursInput = document.getElementById("hours");
     const minutesInput = document.getElementById("minutes");
+    const secondsInput = document.getElementById("seconds");
+    const durationInputs = [hoursInput, minutesInput, secondsInput];
     const warn5 = document.getElementById("warn5");
     const warn1 = document.getElementById("warn1");
     const soundToggle = document.getElementById("sound");
@@ -189,9 +192,15 @@
     let warned1 = false;
 
     function format(sec) {
-      const m = Math.floor(sec / 60);
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
       const s = sec % 60;
-      return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+      const mm = String(m).padStart(2, "0");
+      const ss = String(s).padStart(2, "0");
+      if (h > 0 || Number(hoursInput.value) > 0) {
+        return String(h) + ":" + mm + ":" + ss;
+      }
+      return mm + ":" + ss;
     }
 
     function setStatus(text, kind) {
@@ -306,7 +315,7 @@
       startBtn.disabled = false;
       pauseBtn.disabled = true;
       pauseBtn.textContent = "暫停";
-      minutesInput.disabled = false;
+      durationInputs.forEach((el) => { el.disabled = false; });
       if (!ended) startBtn.textContent = remaining < totalSeconds ? "繼續" : "開始";
     }
 
@@ -316,7 +325,7 @@
       if (remaining <= 0) applyDuration(true);
       running = true;
       endedEl.classList.remove("show");
-      minutesInput.disabled = true;
+      durationInputs.forEach((el) => { el.disabled = true; });
       startBtn.disabled = true;
       pauseBtn.disabled = false;
       pauseBtn.textContent = "暫停";
@@ -332,10 +341,25 @@
       setStatus("已暫停");
     }
 
+    function readDurationSeconds() {
+      let h = Math.max(0, Math.min(23, Math.floor(Number(hoursInput.value) || 0)));
+      let m = Math.max(0, Math.min(59, Math.floor(Number(minutesInput.value) || 0)));
+      let s = Math.max(0, Math.min(59, Math.floor(Number(secondsInput.value) || 0)));
+      let total = h * 3600 + m * 60 + s;
+      if (total < 1) {
+        m = 15;
+        s = 0;
+        h = 0;
+        total = 15 * 60;
+      }
+      hoursInput.value = String(h);
+      minutesInput.value = String(m);
+      secondsInput.value = String(s);
+      return total;
+    }
+
     function applyDuration(force) {
-      const mins = Math.max(1, Math.min(180, Number(minutesInput.value) || 15));
-      minutesInput.value = String(mins);
-      totalSeconds = mins * 60;
+      totalSeconds = readDurationSeconds();
       if (force || !running) {
         remaining = totalSeconds;
         warned5 = false;
@@ -359,8 +383,10 @@
       unlockAudio();
       endAlarm();
     });
-    minutesInput.addEventListener("change", () => {
-      if (!running) applyDuration(true);
+    durationInputs.forEach((el) => {
+      el.addEventListener("change", () => {
+        if (!running) applyDuration(true);
+      });
     });
 
     document.addEventListener("keydown", (e) => {
