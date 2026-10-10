@@ -166,6 +166,7 @@
       <label><input id="warn5" type="checkbox" checked /> 剩 5 分鐘提示</label>
       <label><input id="warn1" type="checkbox" checked /> 剩 1 分鐘提示</label>
       <label><input id="sound" type="checkbox" checked /> 結束鈴聲</label>
+      <button id="testSoundBtn" class="ghost" type="button" style="padding:0.45rem 0.9rem;font-size:0.9rem">試鈴聲</button>
     </div>
   </main>
   <script>
@@ -209,29 +210,67 @@
       else if (remaining <= 5 * 60) timeEl.classList.add("warn");
     }
 
-    function beep(freq, duration, type) {
+    let audioCtx = null;
+
+    function getAudio() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!audioCtx || audioCtx.state === "closed") {
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+      return audioCtx;
+    }
+
+    function unlockAudio() {
+      const ctx = getAudio();
+      if (!ctx) return;
+      // short silent buffer so browsers treat later beeps as allowed
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = type || "sine";
-        osc.frequency.value = freq;
-        gain.gain.value = 0.08;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        setTimeout(() => {
-          osc.stop();
-          ctx.close();
-        }, duration);
+        const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(ctx.destination);
+        src.start(0);
       } catch (_) {}
+    }
+
+    function beep(freq, durationMs, type, volume) {
+      const ctx = getAudio();
+      if (!ctx) return;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+      const dur = Math.max(0.05, durationMs / 1000);
+      const vol = volume == null ? 0.22 : volume;
+      osc.type = type || "square";
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(vol, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + dur + 0.02);
     }
 
     function endAlarm() {
       if (!soundToggle.checked) return;
-      beep(880, 180);
-      setTimeout(() => beep(660, 220), 220);
-      setTimeout(() => beep(880, 350), 480);
+      unlockAudio();
+      const pattern = [
+        [880, 220],
+        [660, 220],
+        [880, 280],
+        [990, 360],
+        [880, 420]
+      ];
+      let delay = 0;
+      pattern.forEach(([freq, ms], i) => {
+        setTimeout(() => beep(freq, ms, i % 2 ? "square" : "sawtooth", 0.28), delay);
+        delay += ms + 80;
+      });
     }
 
     function tick() {
@@ -273,6 +312,7 @@
 
     function startTimer() {
       if (running) return;
+      unlockAudio();
       if (remaining <= 0) applyDuration(true);
       running = true;
       endedEl.classList.remove("show");
@@ -315,6 +355,10 @@
     startBtn.addEventListener("click", startTimer);
     pauseBtn.addEventListener("click", pauseTimer);
     resetBtn.addEventListener("click", resetTimer);
+    document.getElementById("testSoundBtn").addEventListener("click", () => {
+      unlockAudio();
+      endAlarm();
+    });
     minutesInput.addEventListener("change", () => {
       if (!running) applyDuration(true);
     });
