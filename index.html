@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>測驗計時器</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --ok: #4ade80;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang HK", "Noto Sans TC", system-ui, sans-serif;
+      background: radial-gradient(ellipse at top, #1e293b 0%, var(--bg) 70%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .wrap {
+      width: min(920px, 100%);
+      background: color-mix(in srgb, var(--card) 88%, transparent);
+      border: 1px solid #334155;
+      border-radius: 24px;
+      padding: 2rem 1.75rem 1.75rem;
+      box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.45);
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+      font-weight: 650;
+      letter-spacing: 0.02em;
+    }
+    .sub {
+      margin: 0 0 1.75rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .display {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(4.5rem, 18vw, 9rem);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      margin: 0.5rem 0 1.25rem;
+      transition: color 0.25s ease;
+    }
+    .display.warn { color: var(--warn); }
+    .display.danger { color: var(--danger); }
+    .display.done { color: var(--danger); animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+    .status {
+      min-height: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+    .status.warn { color: var(--warn); }
+    .status.danger { color: var(--danger); }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 0.85rem 1.4rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--bg);
+      background: var(--accent);
+      transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:active { transform: scale(0.98); }
+    button.secondary {
+      background: #334155;
+      color: var(--text);
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid #475569;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .setup {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      align-items: center;
+      margin-top: 0.5rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .setup label { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .setup input[type="number"] {
+      width: 4.5rem;
+      padding: 0.45rem 0.55rem;
+      border-radius: 10px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: var(--text);
+      font-size: 1rem;
+      text-align: center;
+    }
+    .setup input[type="checkbox"] {
+      width: 1.05rem;
+      height: 1.05rem;
+      accent-color: var(--accent);
+    }
+    .ended-banner {
+      display: none;
+      margin: 0 auto 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--danger) 18%, transparent);
+      border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+      color: #fecaca;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    .ended-banner.show { display: block; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>測驗計時器</h1>
+    <p class="sub">投影友好 · 可調時長 · 分段提示</p>
+    <div id="ended" class="ended-banner" role="status">時間到！</div>
+    <div id="time" class="display" aria-live="polite">15:00</div>
+    <div id="status" class="status">準備開始</div>
+    <div class="controls">
+      <button id="startBtn" type="button">開始</button>
+      <button id="pauseBtn" class="secondary" type="button" disabled>暫停</button>
+      <button id="resetBtn" class="ghost" type="button">重設</button>
+    </div>
+    <div class="setup">
+      <label>時長（分鐘）
+        <input id="minutes" type="number" min="1" max="180" value="15" />
+      </label>
+      <label><input id="warn5" type="checkbox" checked /> 剩 5 分鐘提示</label>
+      <label><input id="warn1" type="checkbox" checked /> 剩 1 分鐘提示</label>
+      <label><input id="sound" type="checkbox" checked /> 結束鈴聲</label>
+    </div>
+  </main>
+  <script>
+    const timeEl = document.getElementById("time");
+    const statusEl = document.getElementById("status");
+    const endedEl = document.getElementById("ended");
+    const minutesInput = document.getElementById("minutes");
+    const warn5 = document.getElementById("warn5");
+    const warn1 = document.getElementById("warn1");
+    const soundToggle = document.getElementById("sound");
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let totalSeconds = 15 * 60;
+    let remaining = totalSeconds;
+    let timerId = null;
+    let running = false;
+    let warned5 = false;
+    let warned1 = false;
+
+    function format(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text;
+      statusEl.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function paint() {
+      timeEl.textContent = format(remaining);
+      timeEl.className = "display";
+      if (remaining === 0) {
+        timeEl.classList.add("done");
+        return;
+      }
+      if (remaining <= 60) timeEl.classList.add("danger");
+      else if (remaining <= 5 * 60) timeEl.classList.add("warn");
+    }
+
+    function beep(freq, duration, type) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type || "sine";
+        osc.frequency.value = freq;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        setTimeout(() => {
+          osc.stop();
+          ctx.close();
+        }, duration);
+      } catch (_) {}
+    }
+
+    function endAlarm() {
+      if (!soundToggle.checked) return;
+      beep(880, 180);
+      setTimeout(() => beep(660, 220), 220);
+      setTimeout(() => beep(880, 350), 480);
+    }
+
+    function tick() {
+      if (remaining <= 0) return;
+      remaining -= 1;
+      paint();
+
+      if (warn5.checked && !warned5 && remaining === 5 * 60) {
+        warned5 = true;
+        setStatus("剩 5 分鐘", "warn");
+        if (soundToggle.checked) beep(520, 160);
+      } else if (warn1.checked && !warned1 && remaining === 60) {
+        warned1 = true;
+        setStatus("剩 1 分鐘", "danger");
+        if (soundToggle.checked) beep(700, 200);
+      }
+
+      if (remaining <= 0) {
+        remaining = 0;
+        stopTimer(true);
+        endedEl.classList.add("show");
+        setStatus("時間到", "danger");
+        endAlarm();
+      }
+    }
+
+    function stopTimer(ended) {
+      running = false;
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      pauseBtn.textContent = "暫停";
+      minutesInput.disabled = false;
+      if (!ended) startBtn.textContent = remaining < totalSeconds ? "繼續" : "開始";
+    }
+
+    function startTimer() {
+      if (running) return;
+      if (remaining <= 0) applyDuration(true);
+      running = true;
+      endedEl.classList.remove("show");
+      minutesInput.disabled = true;
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = "暫停";
+      startBtn.textContent = "開始";
+      setStatus("計時中…");
+      paint();
+      timerId = setInterval(tick, 1000);
+    }
+
+    function pauseTimer() {
+      if (!running) return;
+      stopTimer(false);
+      setStatus("已暫停");
+    }
+
+    function applyDuration(force) {
+      const mins = Math.max(1, Math.min(180, Number(minutesInput.value) || 15));
+      minutesInput.value = String(mins);
+      totalSeconds = mins * 60;
+      if (force || !running) {
+        remaining = totalSeconds;
+        warned5 = false;
+        warned1 = false;
+        endedEl.classList.remove("show");
+        paint();
+        setStatus("準備開始");
+        startBtn.textContent = "開始";
+      }
+    }
+
+    function resetTimer() {
+      stopTimer(false);
+      applyDuration(true);
+    }
+
+    startBtn.addEventListener("click", startTimer);
+    pauseBtn.addEventListener("click", pauseTimer);
+    resetBtn.addEventListener("click", resetTimer);
+    minutesInput.addEventListener("change", () => {
+      if (!running) applyDuration(true);
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.target.matches("input")) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        running ? pauseTimer() : startTimer();
+      } else if (e.key.toLowerCase() === "r") {
+        resetTimer();
+      }
+    });
+
+    applyDuration(true);
+  </script>
+</body>
+</html>
