@@ -454,7 +454,9 @@
       startBtn.textContent = "開始";
       setStatus("計時中…");
       paint();
-      timerId = setInterval(tick, 1000);
+      // First tick immediately so countdown starts on click (setInterval alone waits 1s)
+      tick();
+      if (running) timerId = setInterval(tick, 1000);
     }
 
     function pauseTimer() {
