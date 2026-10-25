@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>測驗計時器</title>
+  <title>計時器</title>
   <style>
     :root {
       --sky-deep: #0b3a6e;
@@ -101,6 +101,17 @@
     @keyframes drift {
       0%, 100% { transform: translateX(0) translateY(0); }
       50% { transform: translateX(24px) translateY(-8px); }
+    }
+
+    .page-title {
+      margin: 0 0 0.55rem;
+      font-size: clamp(1.35rem, 4vw, 1.85rem);
+      font-weight: 800;
+      letter-spacing: 0.28em;
+      color: #fff;
+      text-shadow:
+        0 1px 0 rgb(8 40 90 / 0.35),
+        0 2px 14px rgb(8 40 90 / 0.45);
     }
     .wrap {
       position: relative;
@@ -264,6 +275,7 @@
 
   <main class="wrap">
     <div id="ended" class="ended-banner" role="status">時間到！大家辛苦了</div>
+    <h1 class="page-title">計時器</h1>
     <div id="time" class="display" aria-live="polite">15:00</div>
     <div id="status" class="status">準備開始</div>
     <div class="controls">
