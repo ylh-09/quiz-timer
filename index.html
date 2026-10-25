@@ -6,10 +6,23 @@
   <title>測驗計時器</title>
   <style>
     :root {
+      --sky-deep: #0b3a6e;
+      --sky-mid: #2a7ec4;
+      --sky-light: #8ec8f0;
+      --gold: #f0c878;
+      --gold-soft: #ffe6b0;
+      --pink-rim: #ffb8c8;
       --text: #0f2a4a;
-      --accent: #2a7ec4;
+      --text-bright: #ffffff;
+      --muted: #4a6a8a;
+      --glass: rgb(255 255 255 / 0.22);
+      --glass-strong: rgb(255 255 255 / 0.38);
+      --glass-border: rgb(255 255 255 / 0.55);
+      --accent: #3a8fd4;
+      --accent2: #5aa8e0;
       --warn: #e8a020;
       --danger: #e84858;
+      --ok: #3cb89a;
     }
     * { box-sizing: border-box; }
     body {
@@ -17,13 +30,14 @@
       min-height: 100vh;
       font-family: "Segoe UI", "PingFang HK", "Hiragino Sans", "Noto Sans TC", system-ui, sans-serif;
       color: var(--text);
+      /* Drop-in hook: prefer local sky photo; CSS sky underneath as fallback */
       background-color: #1a5a9a;
       background-image:
         linear-gradient(
           180deg,
-          rgb(8 40 90 / 0.4) 0%,
-          rgb(40 100 180 / 0.2) 45%,
-          rgb(255 160 120 / 0.28) 100%
+          rgb(8 40 90 / 0.35) 0%,
+          rgb(40 100 180 / 0.15) 40%,
+          rgb(255 180 140 / 0.25) 100%
         ),
         url("bg-sky.jpg");
       background-size: cover;
@@ -33,44 +47,104 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1rem;
+      padding: 1.25rem;
       overflow-x: hidden;
+      position: relative;
+    }
+    /* Soft light rays / luminous haze (CSS-only Shinkai accent over the photo) */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 70% 15%, rgb(255 230 180 / 0.35) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 20% 80%, rgb(255 160 180 / 0.18) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 30% at 85% 70%, rgb(120 200 255 / 0.2) 0%, transparent 45%);
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: repeating-linear-gradient(
+        105deg,
+        transparent 0,
+        transparent 40px,
+        rgb(255 255 255 / 0.03) 40px,
+        rgb(255 255 255 / 0.06) 42px,
+        transparent 44px,
+        transparent 90px
+      );
+      opacity: 0.7;
+      mix-blend-mode: soft-light;
+    }
+    .sky-clouds {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .cloud {
+      position: absolute;
+      border-radius: 50%;
+      background: rgb(255 255 255 / 0.12);
+      filter: blur(28px);
+      animation: drift 28s ease-in-out infinite;
+    }
+    .cloud.c1 { width: 280px; height: 90px; left: 8%; top: 12%; animation-delay: 0s; }
+    .cloud.c2 { width: 360px; height: 110px; right: 5%; top: 22%; animation-delay: -8s; opacity: 0.7; }
+    .cloud.c3 { width: 220px; height: 70px; left: 35%; bottom: 18%; animation-delay: -14s; opacity: 0.55; }
+    @keyframes drift {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      50% { transform: translateX(24px) translateY(-8px); }
     }
     .wrap {
       position: relative;
       z-index: 1;
-      width: min(980px, 100%);
-      background: rgb(12 40 78 / 0.78);
-      border: 2px solid rgb(255 255 255 / 0.35);
-      border-radius: 20px;
-      padding: 1.5rem 1.4rem 1.35rem;
-      box-shadow: 0 16px 40px rgb(0 20 50 / 0.45);
+      width: min(920px, 100%);
+      background: var(--glass-strong);
+      border: 1.5px solid var(--glass-border);
+      border-radius: 28px;
+      padding: 1.6rem 1.6rem 1.45rem;
+      box-shadow:
+        0 24px 60px rgb(8 40 90 / 0.35),
+        0 0 0 1px rgb(255 255 255 / 0.15) inset,
+        0 1px 0 rgb(255 255 255 / 0.45) inset;
       text-align: center;
+      backdrop-filter: blur(18px) saturate(1.25);
+      -webkit-backdrop-filter: blur(18px) saturate(1.25);
     }
     .display {
       font-variant-numeric: tabular-nums;
-      font-size: clamp(5.5rem, 22vw, 11rem);
+      font-size: clamp(5rem, 20vw, 10rem);
       font-weight: 800;
       line-height: 1;
       letter-spacing: 0.04em;
-      margin: 0.2rem 0 0.85rem;
+      margin: 0.15rem 0 0.9rem;
       color: #ffffff;
       text-shadow:
-        0 3px 0 rgb(0 20 50 / 0.45),
-        0 6px 28px rgb(0 20 50 / 0.55);
+        0 2px 0 rgb(8 40 90 / 0.35),
+        0 4px 24px rgb(8 40 90 / 0.55),
+        0 0 48px rgb(100 180 255 / 0.35);
       transition: color 0.25s ease, text-shadow 0.25s ease;
     }
     .display.warn {
       color: #ffe08a;
       text-shadow:
-        0 3px 0 rgb(80 50 0 / 0.4),
-        0 6px 28px rgb(180 100 0 / 0.5);
+        0 2px 0 rgb(100 60 0 / 0.35),
+        0 4px 24px rgb(200 120 0 / 0.5),
+        0 0 40px rgb(255 200 80 / 0.45);
     }
     .display.danger {
       color: #ff8a9a;
       text-shadow:
-        0 3px 0 rgb(70 10 20 / 0.45),
-        0 6px 28px rgb(180 30 50 / 0.55);
+        0 2px 0 rgb(80 10 20 / 0.4),
+        0 4px 24px rgb(200 40 60 / 0.55),
+        0 0 40px rgb(255 100 120 / 0.4);
     }
     .display.done {
       color: #ff6a7a;
@@ -81,11 +155,12 @@
       50% { opacity: 0.75; transform: scale(1.03); }
     }
     .status {
-      min-height: 1.4rem;
-      margin-bottom: 1.1rem;
-      color: rgb(230 242 255 / 0.95);
-      font-size: 1.15rem;
+      min-height: 1.5rem;
+      margin-bottom: 1.25rem;
+      color: rgb(230 242 255 / 0.9);
+      font-size: 1.05rem;
       font-weight: 700;
+      text-shadow: 0 1px 8px rgb(8 40 90 / 0.5);
     }
     .status.warn { color: #ffe08a; }
     .status.danger { color: #ff9aaa; }
@@ -94,7 +169,7 @@
       flex-wrap: wrap;
       gap: 0.7rem;
       justify-content: center;
-      margin-bottom: 1rem;
+      margin-bottom: 1.1rem;
     }
     button {
       appearance: none;
@@ -106,25 +181,28 @@
       cursor: pointer;
       color: #fff;
       background: linear-gradient(180deg, #5eb0f0, #2a7ec4);
-      box-shadow: 0 4px 0 #1a5a9a;
-      border: 1px solid rgb(255 255 255 / 0.3);
+      box-shadow:
+        0 4px 0 #1a5a9a,
+        0 8px 20px rgb(20 80 140 / 0.35);
+      border: 1px solid rgb(255 255 255 / 0.35);
       transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
     }
     button:hover { filter: brightness(1.08); }
-    button:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a5a9a; }
+    button:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a5a9a, 0 4px 12px rgb(20 80 140 / 0.3); }
     button.secondary {
       background: linear-gradient(180deg, #7ec8e8, #4a9cc8);
-      box-shadow: 0 4px 0 #2a6a90;
+      box-shadow: 0 4px 0 #2a6a90, 0 8px 20px rgb(20 80 140 / 0.28);
       color: #0a3050;
     }
-    button.secondary:active { box-shadow: 0 2px 0 #2a6a90; }
+    button.secondary:active { box-shadow: 0 2px 0 #2a6a90, 0 4px 12px rgb(20 80 140 / 0.25); }
     button.ghost {
-      background: rgb(255 255 255 / 0.92);
+      background: rgb(255 255 255 / 0.28);
       color: #0f2a4a;
-      border: 1.5px solid rgb(200 220 240 / 0.9);
-      box-shadow: 0 3px 0 rgb(160 190 220 / 0.7);
+      border: 1.5px solid rgb(255 255 255 / 0.55);
+      box-shadow: 0 3px 0 rgb(255 255 255 / 0.2), 0 6px 16px rgb(8 40 90 / 0.2);
+      backdrop-filter: blur(8px);
     }
-    button.ghost:active { box-shadow: 0 1px 0 rgb(160 190 220 / 0.7); }
+    button.ghost:active { box-shadow: 0 1px 0 rgb(255 255 255 / 0.2); }
     button:disabled {
       opacity: 0.45;
       cursor: not-allowed;
@@ -136,21 +214,24 @@
       gap: 0.7rem;
       justify-content: center;
       align-items: center;
-      color: rgb(240 248 255 / 0.95);
+      margin-top: 0.35rem;
+      color: rgb(240 248 255 / 0.92);
       font-size: 0.95rem;
       font-weight: 600;
+      text-shadow: 0 1px 6px rgb(8 40 90 / 0.4);
     }
     .setup label { display: inline-flex; align-items: center; gap: 0.35rem; }
     .setup input[type="number"] {
       width: 3.6rem;
       padding: 0.4rem 0.45rem;
-      border-radius: 10px;
-      border: 1.5px solid rgb(200 220 240);
-      background: #ffffff;
+      border-radius: 12px;
+      border: 1.5px solid rgb(255 255 255 / 0.5);
+      background: rgb(255 255 255 / 0.55);
       color: var(--text);
       font-size: 1rem;
       font-weight: 700;
       text-align: center;
+      backdrop-filter: blur(6px);
     }
     .setup input[type="checkbox"] {
       width: 1.05rem;
@@ -159,19 +240,28 @@
     }
     .ended-banner {
       display: none;
-      margin: 0 auto 0.85rem;
+      margin: 0 auto 0.9rem;
       padding: 0.7rem 1rem;
-      border-radius: 12px;
-      background: rgb(200 40 60 / 0.85);
-      border: 2px solid rgb(255 180 190);
+      border-radius: 16px;
+      background: rgb(255 100 120 / 0.35);
+      border: 1.5px solid rgb(255 180 190 / 0.65);
       color: #fff;
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 800;
+      text-shadow: 0 1px 8px rgb(80 10 20 / 0.5);
+      backdrop-filter: blur(8px);
     }
     .ended-banner.show { display: block; }
   </style>
 </head>
 <body>
+  <!-- Soft cloud haze over bg-sky.jpg (CSS-only; no character art) -->
+  <div class="sky-clouds" aria-hidden="true">
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+  </div>
+
   <main class="wrap">
     <div id="ended" class="ended-banner" role="status">時間到！大家辛苦了</div>
     <div id="time" class="display" aria-live="polite">15:00</div>
